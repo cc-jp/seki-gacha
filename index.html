@@ -147,10 +147,10 @@
       letter-spacing: 0.08em;
     }
 
-    .logo img {
-      width: 180px;  /* 好きなサイズに */
-      display: block;
-      margin: 0 auto 12px auto;  /* 中央寄せ */
+    .logo {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 16px;
     }
 
     @keyframes spin {
@@ -164,16 +164,16 @@
   <!-- ローディングオーバーレイ -->
   <div id="loadingOverlay" class="overlay">
     <div class="spinner"></div>
-    <div class="overlay-text">席をシャッフル中…</div>
-  </div>
-  
-  <div class="logo">
-    <img src="title.svg" alt="席ガチャロゴ">
   </div>
   
   <main class="app">
+      
+  <div class="logo">
+    <img src="title.svg" alt="席ガチャロゴ">
+  </div>
+    
+  <div class="svg-container">
     <div class="svg-wrapper">
-      <!-- ▼ SVG本体（seat01〜seat30のfillはCSS制御に変更） ▼ -->
       <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
         viewBox="0 0 196.484 238.222" style="enable-background:new 0 0 196.484 238.222;" xml:space="preserve">
         <g id="seat30">
@@ -387,6 +387,7 @@
       </svg>
       <!-- ▲ SVGここまで ▲ -->
     </div>
+  </div>
 
     <section class="actions">
       <button id="btnMain" class="btn-main">コレジャナイ</button>
