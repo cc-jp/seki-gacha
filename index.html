@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>席ガチャ</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: light dark;
+      --bg: #f4f4f5;
+      --fg: #111827;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --accent-strong: #1d4ed8;
+      --seat-bg: #ffffff;
+      --seat-border: #d4d4d8;
+      --seat-text: #111827;
+      --seat-selected-bg: #f97316;
+      --seat-selected-text: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      background: radial-gradient(circle at top, #e5e7eb, #f4f4f5);
+      color: var(--fg);
+    }
+
+    .app {
+      width: 100%;
+      max-width: 720px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title-main {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .title-sub {
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
+    .screen {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow:
+        0 18px 35px rgba(15, 23, 42, 0.16),
+        0 0 0 1px rgba(15, 23, 42, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      backdrop-filter: blur(12px);
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-text {
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
+
+    .result-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .result-pill span {
+      font-weight: 600;
+    }
+
+    .main-result {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 8px 0 4px;
+    }
+
+    .seat-label-big {
+      font-size: clamp(2.2rem, 7vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 10px 20px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      box-shadow:
+        0 12px 25px rgba(37, 99, 235, 0.5),
+        0 0 0 1px rgba(15, 23, 42, 0.05);
+      transform-origin: center;
+      text-align: center;
+      min-width: 140px;
+    }
+
+    .seat-label-big.animate {
+      animation: pop 0.4s ease-out;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      60% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .floor-label {
+      font-size: 0.8rem;
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    .layout {
+      margin-top: 4px;
+      border-radius: 16px;
+      padding: 10px;
+      background: var(--bg);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .layout-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+
+    .seat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+      gap: 8px;
+    }
+
+    .seat {
+      position: relative;
+      border-radius: 12px;
+      padding: 8px 4px;
+      background: var(--seat-bg);
+      border: 1px solid var(--seat-border);
+      font-size: 0.8rem;
+      text-align: center;
+      color: var(--seat-text);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      transition:
+        transform 0.15s ease-out,
+        box-shadow 0.15s ease-out,
+        border-color 0.15s ease-out,
+        background 0.15s ease-out,
+        color 0.15s ease-out;
+      overflow: hidden;
+    }
+
+    .seat-code {
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      font-size: 0.7rem;
+      opacity: 0.8;
+    }
+
+    .seat-name {
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+
+    .seat.selected {
+      background: var(--seat-selected-bg);
+      color: var(--seat-selected-text);
+      border-color: rgba(248, 250, 252, 0.9);
+      box-shadow:
+        0 0 0 1px rgba(248, 250, 252, 0.9),
+        0 10px 22px rgba(249, 115, 22, 0.5);
+      transform: translateY(-3px);
+    }
+
+    .seat.selected::after {
+      content: "★";
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+      border-radius: 999px;
+      border: none;
+      padding: 12px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex: 1;
+      transition:
+        transform 0.08s ease-out,
+        box-shadow 0.1s ease-out,
+        background 0.15s ease-out,
+        opacity 0.15s ease-out;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow:
+        0 10px 18px rgba(37, 99, 235, 0.45),
+        0 0 0 1px rgba(15, 23, 42, 0.05);
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+      box-shadow:
+        0 4px 10px rgba(148, 163, 184, 0.6),
+        0 0 0 1px rgba(148, 163, 184, 0.5);
+      flex: 0.9;
+      font-size: 0.85rem;
+      padding-inline: 14px;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      box-shadow: none;
+      cursor: default;
+    }
+
+    footer {
+      margin-top: 4px;
+      font-size: 0.7rem;
+      text-align: center;
+      opacity: 0.6;
+    }
+
+    @media (max-width: 480px) {
+      .screen {
+        padding: 12px;
+      }
+      .buttons {
+        flex-direction: column;
+      }
+      .btn-secondary {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="title">
+        <div class="title-main">席ガチャ</div>
+        <div class="title-sub">Free address randomizer</div>
+      </div>
+      <div class="result-pill">
+        🎲 <span id="rollCount">0</span> 回目
+      </div>
+    </header>
+
+    <section class="screen">
+      <div class="status-row">
+        <div class="status-text" id="statusText">
+          起動するだけで今日の席を決めます。
+        </div>
+      </div>
+
+      <div class="main-result">
+        <div class="seat-label-big" id="seatLabelBig">– –</div>
+      </div>
+
+      <div class="floor-label" id="floorLabel">
+        好きな席が出るまで回してOK。座られてたらリトライ。
+      </div>
+
+      <div class="layout">
+        <div class="layout-header">
+          <span>座席レイアウト（タップしても変わらないただの図）</span>
+          <span id="seatCount">0 席</span>
+        </div>
+        <div class="seat-grid" id="seatGrid">
+          <!-- JSで生成 -->
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="btn-primary" id="btnRoll">
+          🎲 席ガチャ！
+        </button>
+        <button class="btn-secondary" id="btnRetryInfo">
+          すでに座られてたら…
+        </button>
+      </div>
+    </section>
+
+    <footer>
+      ブラウザのみ・情報保存なし。GitHub Pages にそのまま置けます。
+    </footer>
+  </main>
+
+  <script>
+    // === ここだけ編集すればレイアウト変更できるゾーン ==================
+    // 座席定義（例）：ゾーンや列に合わせて好きに増減してください。
+    // code: 座席番号 / name: 任意のラベル（例：窓側A、柱横…）
+    const seats = [
+      // 窓側列
+      { id: "A1", code: "A-1", name: "窓側A1" },
+      { id: "A2", code: "A-2", name: "窓側A2" },
+      { id: "A3", code: "A-3", name: "窓側A3" },
+      { id: "A4", code: "A-4", name: "窓側A4" },
+
+      // 中央列
+      { id: "B1", code: "B-1", name: "中央B1" },
+      { id: "B2", code: "B-2", name: "中央B2" },
+      { id: "B3", code: "B-3", name: "中央B3" },
+      { id: "B4", code: "B-4", name: "中央B4" },
+
+      // 通路側列
+      { id: "C1", code: "C-1", name: "通路側C1" },
+      { id: "C2", code: "C-2", name: "通路側C2" },
+      { id: "C3", code: "C-3", name: "通路側C3" },
+      { id: "C4", code: "C-4", name: "通路側C4" }
+    ];
+    // ===============================================================
+
+    const seatGridEl = document.getElementById("seatGrid");
+    const seatLabelBigEl = document.getElementById("seatLabelBig");
+    const floorLabelEl = document.getElementById("floorLabel");
+    const statusTextEl = document.getElementById("statusText");
+    const seatCountEl = document.getElementById("seatCount");
+    const rollCountEl = document.getElementById("rollCount");
+    const btnRoll = document.getElementById("btnRoll");
+    const btnRetryInfo = document.getElementById("btnRetryInfo");
+
+    let rollCount = 0;
+    let lastSeatId = null;
+
+    function renderSeats() {
+      seatGridEl.innerHTML = "";
+      seats.forEach((seat) => {
+        const el = document.createElement("div");
+        el.className = "seat";
+        el.dataset.seatId = seat.id;
+        el.innerHTML = `
+          <div class="seat-code">${seat.code}</div>
+          <div class="seat-name">${seat.name}</div>
+        `;
+        seatGridEl.appendChild(el);
+      });
+      seatCountEl.textContent = `${seats.length} 席`;
+    }
+
+    function clearSelection() {
+      document.querySelectorAll(".seat.selected").forEach((el) => {
+        el.classList.remove("selected");
+      });
+    }
+
+    function pickRandomSeat() {
+      if (!seats.length) return null;
+
+      // 直前と同じ席を引きにくくする軽い工夫（席が2つ以上ある場合）
+      let candidates = seats;
+      if (seats.length > 1 && lastSeatId) {
+        const filtered = seats.filter((s) => s.id !== lastSeatId);
+        if (filtered.length > 0) {
+          candidates = filtered;
+        }
+      }
+
+      const index = Math.floor(Math.random() * candidates.length);
+      return candidates[index];
+    }
+
+    function animateBigLabel() {
+      seatLabelBigEl.classList.remove("animate");
+      // 強制再描画してからクラス付け直すことでアニメ再生
+      // eslint-disable-next-line no-unused-expressions
+      seatLabelBigEl.offsetWidth;
+      seatLabelBigEl.classList.add("animate");
+    }
+
+    function rollSeat() {
+      const seat = pickRandomSeat();
+      if (!seat) return;
+
+      lastSeatId = seat.id;
+      rollCount += 1;
+      rollCountEl.textContent = rollCount;
+
+      clearSelection();
+      const seatEl = document.querySelector(`.seat[data-seat-id="${seat.id}"]`);
+      if (seatEl) {
+        seatEl.classList.add("selected");
+        seatEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      seatLabelBigEl.textContent = seat.code;
+      floorLabelEl.textContent = `${seat.name} にどうぞ。すでに人がいたら「席ガチャ！」をもう一回。`;
+      statusTextEl.textContent = rollCount === 1
+        ? "今日の席が決まりました。"
+        : "席ガチャを回し直しました。";
+      animateBigLabel();
+    }
+
+    btnRoll.addEventListener("click", () => {
+      rollSeat();
+      navigator.vibrate?.(50); // 対応端末なら軽くバイブさせる
+    });
+
+    btnRetryInfo.addEventListener("click", () => {
+      alert("画面の『席ガチャ！』を押すだけで何度でも引き直しOKです。\n\n" +
+        "・すでに誰かが座っていた\n" +
+        "・荷物を置く場所がない\n" +
+        "・どうしても寒い/暑い など\n\n" +
+        "そのときは遠慮なくもう一回どうぞ。");
+    });
+
+    // 初期化
+    renderSeats();
+    // 起動時に一回自動で座席を決める
+    window.addEventListener("load", () => {
+      setTimeout(rollSeat, 400);
+    });
+  </script>
+</body>
+</html>
