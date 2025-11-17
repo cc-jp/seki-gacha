@@ -68,6 +68,22 @@
       opacity: 0.7;
     }
 
+    .result-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .result-pill span {
+      font-weight: 600;
+    }
+
     .screen {
       background: rgba(255, 255, 255, 0.9);
       border-radius: 18px;
@@ -91,22 +107,6 @@
     .status-text {
       font-size: 0.9rem;
       opacity: 0.7;
-    }
-
-    .result-pill {
-      padding: 6px 12px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent-strong);
-      font-size: 0.8rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-
-    .result-pill span {
-      font-weight: 600;
     }
 
     .main-result {
@@ -136,10 +136,23 @@
       animation: pop 0.4s ease-out;
     }
 
+    /* 抽選中のときにゆるく横揺れ */
+    .seat-label-big.rolling {
+      animation: roll 0.5s ease-in-out infinite;
+    }
+
     @keyframes pop {
       0% { transform: scale(0.6); opacity: 0; }
       60% { transform: scale(1.08); opacity: 1; }
       100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes roll {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      50% { transform: translateX(4px); }
+      75% { transform: translateX(-4px); }
+      100% { transform: translateX(0); }
     }
 
     .floor-label {
@@ -163,6 +176,20 @@
       margin-bottom: 8px;
       font-size: 0.75rem;
       opacity: 0.8;
+    }
+
+    .layout-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .seat-map {
+      width: 100%;
+      max-height: 180px;
+      border-radius: 12px;
+      background: #e5e7eb;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.7);
     }
 
     .seat-grid {
@@ -260,17 +287,6 @@
         0 0 0 1px rgba(15, 23, 42, 0.05);
     }
 
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #111827;
-      box-shadow:
-        0 4px 10px rgba(148, 163, 184, 0.6),
-        0 0 0 1px rgba(148, 163, 184, 0.5);
-      flex: 0.9;
-      font-size: 0.85rem;
-      padding-inline: 14px;
-    }
-
     .btn-primary:disabled {
       opacity: 0.55;
       box-shadow: none;
@@ -284,15 +300,44 @@
       opacity: 0.6;
     }
 
+    /* SVG座席用 */
+    .svg-seat {
+      fill: #ffffff;
+      stroke: #9ca3af;
+      stroke-width: 1;
+      rx: 4;
+      ry: 4;
+      transition:
+        fill 0.15s ease-out,
+        stroke 0.15s ease-out,
+        transform 0.15s ease-out;
+    }
+
+    .svg-seat-label {
+      font-size: 6px;
+      fill: #374151;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    .svg-seat.selected {
+      fill: var(--seat-selected-bg);
+      stroke: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .svg-seat-label.selected {
+      fill: #ffffff;
+      font-weight: 700;
+    }
+
     @media (max-width: 480px) {
       .screen {
         padding: 12px;
       }
       .buttons {
         flex-direction: column;
-      }
-      .btn-secondary {
-        width: 100%;
       }
     }
   </style>
@@ -321,25 +366,35 @@
       </div>
 
       <div class="floor-label" id="floorLabel">
-        好きな席が出るまで回してOK。座られてたらリトライ。
+        すでに誰か座っていたら、もう一度ガチャを回してOK。
       </div>
 
       <div class="layout">
         <div class="layout-header">
-          <span>座席レイアウト（タップしても変わらないただの図）</span>
+          <span>座席レイアウト（SVG 図）</span>
           <span id="seatCount">0 席</span>
         </div>
-        <div class="seat-grid" id="seatGrid">
-          <!-- JSで生成 -->
+        <div class="layout-body">
+          <!-- SVG 座席図 -->
+          <svg
+            id="seatMap"
+            class="seat-map"
+            viewBox="0 0 210 110"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <!-- JSで中身を生成 -->
+          </svg>
+
+          <!-- テキストグリッドの一覧も欲しければ残す -->
+          <div class="seat-grid" id="seatGrid">
+            <!-- JSで生成 -->
+          </div>
         </div>
       </div>
 
       <div class="buttons">
         <button class="btn-primary" id="btnRoll">
           🎲 席ガチャ！
-        </button>
-        <button class="btn-secondary" id="btnRetryInfo">
-          すでに座られてたら…
         </button>
       </div>
     </section>
@@ -350,43 +405,48 @@
   </main>
 
   <script>
-    // === ここだけ編集すればレイアウト変更できるゾーン ==================
-    // 座席定義（例）：ゾーンや列に合わせて好きに増減してください。
-    // code: 座席番号 / name: 任意のラベル（例：窓側A、柱横…）
+    // ========= 設定ゾーン =======================================
+    // 抽選のディレイ（ミリ秒）
+    const ROLL_DELAY_MS = 1000;
+
+    // 座席定義
+    // svg: SVG 上の座標（x, y）とサイズ（w, h は省略可）
     const seats = [
-      // 窓側列
-      { id: "A1", code: "A-1", name: "窓側A1" },
-      { id: "A2", code: "A-2", name: "窓側A2" },
-      { id: "A3", code: "A-3", name: "窓側A3" },
-      { id: "A4", code: "A-4", name: "窓側A4" },
+      // 上段（窓側）
+      { id: "A1", code: "A-1", name: "窓側A1", svg: { x: 20,  y: 20 } },
+      { id: "A2", code: "A-2", name: "窓側A2", svg: { x: 70,  y: 20 } },
+      { id: "A3", code: "A-3", name: "窓側A3", svg: { x: 120, y: 20 } },
+      { id: "A4", code: "A-4", name: "窓側A4", svg: { x: 170, y: 20 } },
 
-      // 中央列
-      { id: "B1", code: "B-1", name: "中央B1" },
-      { id: "B2", code: "B-2", name: "中央B2" },
-      { id: "B3", code: "B-3", name: "中央B3" },
-      { id: "B4", code: "B-4", name: "中央B4" },
+      // 中段（中央列）
+      { id: "B1", code: "B-1", name: "中央B1", svg: { x: 20,  y: 55 } },
+      { id: "B2", code: "B-2", name: "中央B2", svg: { x: 70,  y: 55 } },
+      { id: "B3", code: "B-3", name: "中央B3", svg: { x: 120, y: 55 } },
+      { id: "B4", code: "B-4", name: "中央B4", svg: { x: 170, y: 55 } },
 
-      // 通路側列
-      { id: "C1", code: "C-1", name: "通路側C1" },
-      { id: "C2", code: "C-2", name: "通路側C2" },
-      { id: "C3", code: "C-3", name: "通路側C3" },
-      { id: "C4", code: "C-4", name: "通路側C4" }
+      // 下段（通路側）
+      { id: "C1", code: "C-1", name: "通路側C1", svg: { x: 20,  y: 90 } },
+      { id: "C2", code: "C-2", name: "通路側C2", svg: { x: 70,  y: 90 } },
+      { id: "C3", code: "C-3", name: "通路側C3", svg: { x: 120, y: 90 } },
+      { id: "C4", code: "C-4", name: "通路側C4", svg: { x: 170, y: 90 } }
     ];
-    // ===============================================================
+    // ==========================================================
 
     const seatGridEl = document.getElementById("seatGrid");
+    const seatMapEl = document.getElementById("seatMap");
     const seatLabelBigEl = document.getElementById("seatLabelBig");
     const floorLabelEl = document.getElementById("floorLabel");
     const statusTextEl = document.getElementById("statusText");
     const seatCountEl = document.getElementById("seatCount");
     const rollCountEl = document.getElementById("rollCount");
     const btnRoll = document.getElementById("btnRoll");
-    const btnRetryInfo = document.getElementById("btnRetryInfo");
 
     let rollCount = 0;
     let lastSeatId = null;
+    let isRolling = false;
 
     function renderSeats() {
+      // テキストグリッド
       seatGridEl.innerHTML = "";
       seats.forEach((seat) => {
         const el = document.createElement("div");
@@ -398,6 +458,35 @@
         `;
         seatGridEl.appendChild(el);
       });
+
+      // SVG 座席図
+      const svgns = "http://www.w3.org/2000/svg";
+      seatMapEl.innerHTML = "";
+
+      seats.forEach((seat) => {
+        if (!seat.svg) return;
+        const w = seat.svg.w || 32;
+        const h = seat.svg.h || 18;
+
+        const rect = document.createElementNS(svgns, "rect");
+        rect.setAttribute("x", seat.svg.x);
+        rect.setAttribute("y", seat.svg.y);
+        rect.setAttribute("width", w);
+        rect.setAttribute("height", h);
+        rect.classList.add("svg-seat");
+        rect.dataset.seatId = seat.id;
+
+        const text = document.createElementNS(svgns, "text");
+        text.setAttribute("x", seat.svg.x + w / 2);
+        text.setAttribute("y", seat.svg.y + h / 2 + 0.5);
+        text.classList.add("svg-seat-label");
+        text.dataset.seatId = seat.id;
+        text.textContent = seat.code;
+
+        seatMapEl.appendChild(rect);
+        seatMapEl.appendChild(text);
+      });
+
       seatCountEl.textContent = `${seats.length} 席`;
     }
 
@@ -405,13 +494,19 @@
       document.querySelectorAll(".seat.selected").forEach((el) => {
         el.classList.remove("selected");
       });
+      document.querySelectorAll(".svg-seat.selected").forEach((el) => {
+        el.classList.remove("selected");
+      });
+      document.querySelectorAll(".svg-seat-label.selected").forEach((el) => {
+        el.classList.remove("selected");
+      });
     }
 
     function pickRandomSeat() {
       if (!seats.length) return null;
 
-      // 直前と同じ席を引きにくくする軽い工夫（席が2つ以上ある場合）
       let candidates = seats;
+      // 直前と同じ席を引きにくくする（2席以上ある場合）
       if (seats.length > 1 && lastSeatId) {
         const filtered = seats.filter((s) => s.id !== lastSeatId);
         if (filtered.length > 0) {
@@ -423,55 +518,87 @@
       return candidates[index];
     }
 
-    function animateBigLabel() {
+    function animateReveal() {
       seatLabelBigEl.classList.remove("animate");
-      // 強制再描画してからクラス付け直すことでアニメ再生
+      // 再描画を挟んでからアニメーションを付け直す
       // eslint-disable-next-line no-unused-expressions
       seatLabelBigEl.offsetWidth;
       seatLabelBigEl.classList.add("animate");
     }
 
-    function rollSeat() {
-      const seat = pickRandomSeat();
-      if (!seat) return;
+    function startRollingAnimation() {
+      isRolling = true;
+      btnRoll.disabled = true;
+      btnRoll.textContent = "抽選中…";
+      seatLabelBigEl.textContent = "🎲";
+      seatLabelBigEl.classList.remove("animate");
+      seatLabelBigEl.classList.add("rolling");
+      statusTextEl.textContent = "よさげな席を探しています…";
+    }
 
+    function showSeat(seat) {
       lastSeatId = seat.id;
       rollCount += 1;
       rollCountEl.textContent = rollCount;
 
       clearSelection();
+
+      // グリッド側ハイライト
       const seatEl = document.querySelector(`.seat[data-seat-id="${seat.id}"]`);
       if (seatEl) {
         seatEl.classList.add("selected");
         seatEl.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
+      // SVG 側ハイライト
+      const svgSeat = document.querySelector(`.svg-seat[data-seat-id="${seat.id}"]`);
+      const svgLabel = document.querySelector(`.svg-seat-label[data-seat-id="${seat.id}"]`);
+      if (svgSeat) svgSeat.classList.add("selected");
+      if (svgLabel) svgLabel.classList.add("selected");
+
+      seatLabelBigEl.classList.remove("rolling");
       seatLabelBigEl.textContent = seat.code;
-      floorLabelEl.textContent = `${seat.name} にどうぞ。すでに人がいたら「席ガチャ！」をもう一回。`;
-      statusTextEl.textContent = rollCount === 1
-        ? "今日の席が決まりました。"
-        : "席ガチャを回し直しました。";
-      animateBigLabel();
+      floorLabelEl.textContent = `${seat.name} にどうぞ。すでに人がいたら、もう一度ガチャを回してください。`;
+      statusTextEl.textContent =
+        rollCount === 1 ? "今日の席が決まりました。" : "席ガチャを回し直しました。";
+
+      // ボタンラベルを「引き直し」寄りに変更
+      btnRoll.textContent = "↻ 別の席を引き直す";
+
+      animateReveal();
+      navigator.vibrate?.(40); // 対応端末なら軽くバイブ
+      btnRoll.disabled = false;
+      isRolling = false;
+    }
+
+    function rollSeatWithDelay() {
+      if (isRolling) return;
+      startRollingAnimation();
+
+      setTimeout(() => {
+        const seat = pickRandomSeat();
+        if (!seat) {
+          statusTextEl.textContent = "座席が定義されていません。";
+          btnRoll.disabled = false;
+          isRolling = false;
+          return;
+        }
+        showSeat(seat);
+      }, ROLL_DELAY_MS);
     }
 
     btnRoll.addEventListener("click", () => {
-      rollSeat();
-      navigator.vibrate?.(50); // 対応端末なら軽くバイブさせる
-    });
-
-    btnRetryInfo.addEventListener("click", () => {
-      alert("画面の『席ガチャ！』を押すだけで何度でも引き直しOKです。\n\n" +
-        "・すでに誰かが座っていた\n" +
-        "・荷物を置く場所がない\n" +
-        "・どうしても寒い/暑い など\n\n" +
-        "そのときは遠慮なくもう一回どうぞ。");
+      rollSeatWithDelay();
     });
 
     // 初期化
     renderSeats();
+
     // 起動時に一回自動で座席を決める
     window.addEventListener("load", () => {
-      setTimeout(rollSeat, 400);
+      setTimeout(() => {
+        rollSeatWithDelay();
+      }, 400);
     });
   </script>
 </body>
