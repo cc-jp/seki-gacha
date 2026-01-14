@@ -1,219 +1,326 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SEKIGACHA</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEKIGACHA</title>
 
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="manifest" href="manifest.json">
+  <!-- ▼ 追加：ホーム画面アイコン ▼ -->
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="manifest" href="manifest.json" />
+  <!-- ▲ 追加ここまで ▲ -->
 
-<style>
-  body {
-    font-family: "Segoe UI", sans-serif;
-    margin: 0;
-    padding: 0;
-    background: #f1f5f9;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+  <style>
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+        "Segoe UI", system-ui, sans-serif;
+      color-scheme: light;
+      --bg: #ffffff;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--bg);
+    }
 
-  .logo {
-    width: 100%;
-    text-align: center;
-    margin: 24px 0 12px;
-  }
+    .app {
+      width: 100%;
+      max-width: 400px;
+      padding: 24px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
 
-  .logo img {
-    width: 240px;
-    opacity: 0.95;
-  }
+    .svg-wrapper {
+      width: 100%;
+      max-width: 320px;
+    }
 
-  .svg-container {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    margin-top: 4px;
-  }
+    .svg-wrapper svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
 
-  .svg-wrapper {
-    width: 320px;
-  }
+    /* 座席の標準 */
+    g[id^="seat"] path,
+    g[id^="seat"] rect {
+      fill: #9fa0a0;
+      transition: fill 0.15s ease-out, opacity 0.15s ease-out;
+    }
 
-  svg {
-    width: 100%;
-    height: auto;
-  }
+    /* 選択中 */
+    g[id^="seat"].is-current path,
+    g[id^="seat"].is-current rect {
+      fill: #1fa4ea;
+      opacity: 1;
+    }
 
-  /* 座席ハイライト */
-  g[id^="seat"] * {
-    transition: fill 0.2s ease-out, opacity 0.2s ease-out;
-  }
+    /* コレジャナイ（候補外） */
+    g[id^="seat"].is-disabled path,
+    g[id^="seat"].is-disabled rect {
+      fill: #e5e7eb;
+      opacity: 0.4;
+    }
 
-  g[id^="seat"].is-current path,
-  g[id^="seat"].is-current rect {
-    fill: #1fa4ea !important;
-  }
+    /* ボタン行 */
+    .actions {
+      margin-top: 8px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 12px; /* ← 追加：リロードボタンとの間隔 */
+      align-items: center;
+    }
 
-  g[id^="seat"].is-disabled path,
-  g[id^="seat"].is-disabled rect {
-    fill: #d1d5db !important;
-    opacity: 0.4;
-  }
+    .btn-main {
+      width: 60%;
+      max-width: 260px;
+      border: none;
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: #1fa4ea;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+      transition: transform 0.08s ease-out, box-shadow 0.1s ease-out,
+        opacity 0.15s ease-out, background 0.15s ease-out;
+    }
 
-  /* ボタンまわり */
-  .actions {
-    margin-top: 20px;
-    display: flex;
-    gap: 14px;
-    justify-content: center;
-    align-items: center;
-  }
+    .btn-main:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    }
 
-  .btn-main {
-    padding: 12px 22px;
-    font-size: 18px;
-    border-radius: 12px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
+    .btn-main:disabled {
+      opacity: 0.5;
+      box-shadow: none;
+      background: #9ca3af;
+    }
 
-  .btn-main:active {
-    background: #1d4ed8;
-  }
+    .message {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+      min-height: 1.4em;
+    }
 
-  /* 丸いリセットボタン */
-  .btn-retry {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: none;
-    background: #e2e8f0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: background 0.2s ease;
-  }
+    /* ローディング */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+      transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
+    }
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 4px solid #d4d4d4;
+      border-top-color: #1fa4ea;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-  .btn-retry:hover { background: #cbd5e1; }
-  .btn-retry:active { background: #bfc7d0; }
+    .logo {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 16px;
+    }
 
-  .icon-reload {
-    width: 22px;
-    height: 22px;
-    color: #475569;
-  }
+    /* ▼ 新規：リロード（全席リセット）ボタン ▼ */
+    .btn-retry {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .btn-retry:hover { background: #cbd5e1; }
+    .btn-retry:active { background: #bfc7d0; }
 
-  /* ローディング（遅延演出） */
-  .loading-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(255,255,255,0.8);
-    backdrop-filter: blur(2px);
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-  }
-
-  .spinner {
-    width: 48px;
-    height: 48px;
-    border: 5px solid #cbd5e1;
-    border-top-color: #0ea5e9;
-    border-radius: 50%;
-    animation: spin 0.9s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-</style>
+    .icon-reload {
+      width: 22px;
+      height: 22px;
+      color: #475569;
+    }
+    /* ▲ 追加ここまで ▲ */
+  </style>
 </head>
 
 <body>
-
-<div class="loading-overlay" id="loading">
-  <div class="spinner"></div>
-</div>
-
-<div class="logo">
-  <img src="title.svg" alt="SEKIGACHA">
-</div>
-
-<div class="svg-container">
-  <div class="svg-wrapper">
-    
-    <!-- ▼▼▼ あなたの cleaned SVG 座席レイアウトをここに貼る ▼▼▼ -->
-    <!-- （<svg> から </svg> まで丸ごと） -->
-    
+  <!-- ローディング -->
+  <div id="loadingOverlay" class="overlay">
+    <div class="spinner"></div>
   </div>
-</div>
 
-<section class="actions">
-  <button id="btnMain" class="btn-main">コレジャナイ</button>
+  <main class="app">
+    <div class="logo">
+      <img src="title.svg" alt="席ガチャロゴ">
+    </div>
 
-  <button id="btnRetry" class="btn-retry" aria-label="全席リセット">
-    <svg viewBox="0 0 24 24" class="icon-reload">
-      <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6a6 6 0 1 1-6-6"
-            fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </button>
-</section>
+    <div class="svg-container">
+      <div class="svg-wrapper">
+
+        <!-- ▼ SVG（あなたの現状のまま） ▼ -->
+        <!-- …ここに長い席SVGがそのまま続く… -->
+        <!-- （省略） -->
+        <!-- ▲ SVGここまで ▲ -->
+
+      </div>
+    </div>
+
+    <section class="actions">
+      <button id="btnMain" class="btn-main">ココジャナイ</button>
+
+      <!-- ▼ 追加：全リセットボタン -->
+      <button id="btnReset" class="btn-retry" aria-label="全席リセット">
+        <svg viewBox="0 0 24 24" class="icon-reload">
+          <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6a6 6 0 1 1-6-6"
+                fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <!-- ▲ 追加ここまで -->
+    </section>
+
+    <div id="message" class="message"></div>
+  </main>
 
 <script>
-  const seats = [...document.querySelectorAll('g[id^="seat"]')];
+  const LOADING_DELAY_MS = 1000;
+  const overlayEl = document.getElementById("loadingOverlay");
   const btnMain = document.getElementById("btnMain");
-  const btnRetry = document.getElementById("btnRetry");
-  const loading = document.getElementById("loading");
+  const btnReset = document.getElementById("btnReset");
+  const messageEl = document.getElementById("message");
 
-  function showLoading(ms = 900) {
-    loading.style.display = "flex";
-    return new Promise(resolve => setTimeout(() => {
-      loading.style.display = "none";
-      resolve();
-    }, ms));
+  const seatGroups = Array.from(document.querySelectorAll("svg g[id^='seat']"));
+  const seatIds = seatGroups.map(g => g.id);
+
+  const seatState = {};
+  seatIds.forEach(id => seatState[id] = "available");
+
+  let currentSeatId = null;
+
+  function showOverlay() { overlayEl.classList.remove("hidden"); }
+  function hideOverlay() { overlayEl.classList.add("hidden"); }
+  function updateMessage(t) { messageEl.textContent = t || ""; }
+
+  function setCurrentSeat(id) {
+    if (currentSeatId) {
+      const prev = document.getElementById(currentSeatId);
+      if (prev) prev.classList.remove("is-current");
+    }
+    currentSeatId = id;
+    const el = document.getElementById(id);
+    if (el) el.classList.add("is-current");
   }
 
-  function pickRandomSeat() {
-    const candidates = seats.filter(s => !s.classList.contains("is-disabled"));
-    if (candidates.length === 0) return;
-
-    seats.forEach(s => s.classList.remove("is-current"));
-
-    const seat = candidates[Math.floor(Math.random() * candidates.length)];
-    seat.classList.add("is-current");
+  function rejectCurrentSeat() {
+    if (!currentSeatId) return;
+    seatState[currentSeatId] = "rejected";
+    const el = document.getElementById(currentSeatId);
+    if (el) {
+      el.classList.remove("is-current");
+      el.classList.add("is-disabled");
+    }
+    currentSeatId = null;
   }
 
-  btnMain.addEventListener("click", async () => {
-    await showLoading();
-    const current = document.querySelector("g.is-current");
-    if (current) current.classList.add("is-disabled");
-    pickRandomSeat();
+  function pickRandomAvailableSeat() {
+    const candidates = seatIds.filter(
+      id => seatState[id] === "available" && id !== currentSeatId
+    );
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  function rollNextSeat({ rejectCurrent = false } = {}) {
+    btnMain.disabled = true;
+    btnReset.disabled = true;
+    showOverlay();
+
+    setTimeout(() => {
+      if (rejectCurrent) rejectCurrentSeat();
+
+      const nextId = pickRandomAvailableSeat();
+      if (!nextId) {
+        hideOverlay();
+        updateMessage("もう空いている席はありません。");
+        btnMain.textContent = "席なし";
+        return;
+      }
+
+      setCurrentSeat(nextId);
+      updateMessage("");
+
+      hideOverlay();
+      btnMain.disabled = false;
+      btnReset.disabled = false;
+      btnMain.textContent = "ココジャナイ";
+
+      if (navigator.vibrate) navigator.vibrate(40);
+    }, LOADING_DELAY_MS);
+  }
+
+  /* ▼ 新規追加：全席リセット → 再抽選 ▼ */
+  btnReset.addEventListener("click", () => {
+    btnMain.disabled = true;
+    btnReset.disabled = true;
+    showOverlay();
+
+    setTimeout(() => {
+      // 状態リセット
+      seatIds.forEach(id => {
+        seatState[id] = "available";
+        const el = document.getElementById(id);
+        el.classList.remove("is-current", "is-disabled");
+      });
+
+      currentSeatId = null;
+
+      // 再抽選
+      rollNextSeat({ rejectCurrent: false });
+
+      hideOverlay();
+      btnMain.disabled = false;
+      btnReset.disabled = false;
+    }, LOADING_DELAY_MS);
   });
+  /* ▲ 追加ここまで ▲ */
 
-  // ここが今回の追加：全席をリセットし、再抽選
-  btnRetry.addEventListener("click", async () => {
-    await showLoading();
-
-    seats.forEach(s => {
-      s.classList.remove("is-disabled", "is-current");
-    });
-
-    pickRandomSeat();
-  });
-
-  // 初回自動抽選
-  window.addEventListener("load", async () => {
-    await showLoading(700);
-    pickRandomSeat();
+  window.addEventListener("load", () => {
+    rollNextSeat({ rejectCurrent: false });
   });
 </script>
-
 </body>
 </html>
