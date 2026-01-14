@@ -5,28 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SEKIGACHA</title>
 
-  <!-- ▼ 追加：ホーム画面アイコン ▼ -->
+  <!-- アプリアイコン -->
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="manifest" href="manifest.json" />
-  <!-- ▲ 追加ここまで ▲ -->
 
   <style>
     :root {
-      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
-        "Segoe UI", system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
       color-scheme: light;
-      --bg: #ffffff;
-    }
-    * {
-      box-sizing: border-box;
     }
     body {
       margin: 0;
-      min-height: 100vh;
+      background: #ffffff;
       display: flex;
       justify-content: center;
-      align-items: center;
-      background: var(--bg);
     }
 
     .app {
@@ -36,123 +28,54 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 24px;
     }
 
-    .svg-wrapper {
-      width: 100%;
-      max-width: 320px;
-    }
+    .logo img { width: 240px; }
 
-    .svg-wrapper svg {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
+    .svg-wrapper { width: 320px; }
+    .svg-wrapper svg { width: 100%; height: auto; }
 
-    /* 座席の標準 */
+    /* 座席標準色 */
     g[id^="seat"] path,
     g[id^="seat"] rect {
       fill: #9fa0a0;
-      transition: fill 0.15s ease-out, opacity 0.15s ease-out;
+      transition: fill 0.15s, opacity 0.15s;
     }
 
-    /* 選択中 */
+    /* ハイライト */
     g[id^="seat"].is-current path,
     g[id^="seat"].is-current rect {
       fill: #1fa4ea;
       opacity: 1;
     }
 
-    /* コレジャナイ（候補外） */
+    /* 除外席 */
     g[id^="seat"].is-disabled path,
     g[id^="seat"].is-disabled rect {
       fill: #e5e7eb;
-      opacity: 0.4;
+      opacity: 0.35;
     }
 
     /* ボタン行 */
     .actions {
-      margin-top: 8px;
-      width: 100%;
+      margin-top: 20px;
       display: flex;
       justify-content: center;
-      gap: 12px; /* ← 追加：リロードボタンとの間隔 */
       align-items: center;
+      gap: 14px;
     }
 
     .btn-main {
-      width: 60%;
-      max-width: 260px;
+      padding: 12px 20px;
       border: none;
-      border-radius: 999px;
-      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 18px;
       background: #1fa4ea;
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 14px;
-      letter-spacing: 0.12em;
+      color: #fff;
       cursor: pointer;
-      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
-      transition: transform 0.08s ease-out, box-shadow 0.1s ease-out,
-        opacity 0.15s ease-out, background 0.15s ease-out;
     }
 
-    .btn-main:active {
-      transform: translateY(1px);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
-    }
-
-    .btn-main:disabled {
-      opacity: 0.5;
-      box-shadow: none;
-      background: #9ca3af;
-    }
-
-    .message {
-      margin-top: 6px;
-      font-size: 11px;
-      color: #777;
-      text-align: center;
-      min-height: 1.4em;
-    }
-
-    /* ローディング */
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(255, 255, 255, 0.8);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      backdrop-filter: blur(4px);
-      transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
-    }
-    .overlay.hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      border: 4px solid #d4d4d4;
-      border-top-color: #1fa4ea;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 8px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .logo {
-      width: 100%;
-      text-align: center;
-      margin-bottom: 16px;
-    }
-
-    /* ▼ 新規：リロード（全席リセット）ボタン ▼ */
+    /* 丸ボタン */
     .btn-retry {
       width: 44px;
       height: 44px;
@@ -163,164 +86,118 @@
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      transition: background 0.2s ease;
     }
-    .btn-retry:hover { background: #cbd5e1; }
-    .btn-retry:active { background: #bfc7d0; }
 
     .icon-reload {
       width: 22px;
       height: 22px;
-      color: #475569;
     }
-    /* ▲ 追加ここまで ▲ */
+
+    /* ローディング */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #d4d4d4;
+      border-top-color: #1fa4ea;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 
 <body>
-  <!-- ローディング -->
-  <div id="loadingOverlay" class="overlay">
-    <div class="spinner"></div>
+
+<div id="loadingOverlay" class="overlay">
+  <div class="spinner"></div>
+</div>
+
+<main class="app">
+
+  <div class="logo">
+    <img src="title.svg" alt="SEKIGACHA">
   </div>
 
-  <main class="app">
-    <div class="logo">
-      <img src="title.svg" alt="席ガチャロゴ">
-    </div>
+  <div class="svg-wrapper">
+    <!-- ▼▼▼ あなたの seat01〜seat30 の SVG をここに丸ごと貼る ▼▼▼ -->
+  </div>
 
-    <div class="svg-container">
-      <div class="svg-wrapper">
+  <section class="actions">
+    <button id="btnMain" class="btn-main">ココジャナイ</button>
 
-        <!-- ▼ SVG（あなたの現状のまま） ▼ -->
-        <!-- …ここに長い席SVGがそのまま続く… -->
-        <!-- （省略） -->
-        <!-- ▲ SVGここまで ▲ -->
+    <button id="btnReset" class="btn-retry" aria-label="全席リセット">
+      <svg viewBox="0 0 24 24" class="icon-reload">
+        <path
+          d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6a6 6 0 1 1-6-6"
+          fill="none"
+          stroke="#475569"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+  </section>
 
-      </div>
-    </div>
+</main>
 
-    <section class="actions">
-      <button id="btnMain" class="btn-main">ココジャナイ</button>
-
-      <!-- ▼ 追加：全リセットボタン -->
-      <button id="btnReset" class="btn-retry" aria-label="全席リセット">
-        <svg viewBox="0 0 24 24" class="icon-reload">
-          <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6a6 6 0 1 1-6-6"
-                fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <!-- ▲ 追加ここまで -->
-    </section>
-
-    <div id="message" class="message"></div>
-  </main>
-
+<!-- ▼ JS は body の最後に移動（重要！） ▼ -->
 <script>
-  const LOADING_DELAY_MS = 1000;
-  const overlayEl = document.getElementById("loadingOverlay");
-  const btnMain = document.getElementById("btnMain");
-  const btnReset = document.getElementById("btnReset");
-  const messageEl = document.getElementById("message");
+const LOADING_DELAY_MS = 700;
+const overlayEl = document.getElementById("loadingOverlay");
+const btnMain = document.getElementById("btnMain");
+const btnReset = document.getElementById("btnReset");
 
-  const seatGroups = Array.from(document.querySelectorAll("svg g[id^='seat']"));
-  const seatIds = seatGroups.map(g => g.id);
+function showLoading() {
+  overlayEl.style.display = "flex";
+  return new Promise(r => setTimeout(() => {
+    overlayEl.style.display = "none";
+    r();
+  }, LOADING_DELAY_MS));
+}
 
-  const seatState = {};
-  seatIds.forEach(id => seatState[id] = "available");
+let currentSeatId = null;
+const seats = [...document.querySelectorAll("g[id^='seat']")];
 
-  let currentSeatId = null;
+function pickRandomSeat() {
+  const remaining = seats.filter(s => !s.classList.contains("is-disabled"));
+  if (remaining.length === 0) return null;
+  seats.forEach(s => s.classList.remove("is-current"));
+  const seat = remaining[Math.floor(Math.random() * remaining.length)];
+  seat.classList.add("is-current");
+  currentSeatId = seat.id;
+}
 
-  function showOverlay() { overlayEl.classList.remove("hidden"); }
-  function hideOverlay() { overlayEl.classList.add("hidden"); }
-  function updateMessage(t) { messageEl.textContent = t || ""; }
-
-  function setCurrentSeat(id) {
-    if (currentSeatId) {
-      const prev = document.getElementById(currentSeatId);
-      if (prev) prev.classList.remove("is-current");
-    }
-    currentSeatId = id;
-    const el = document.getElementById(id);
-    if (el) el.classList.add("is-current");
-  }
-
-  function rejectCurrentSeat() {
-    if (!currentSeatId) return;
-    seatState[currentSeatId] = "rejected";
+btnMain.addEventListener("click", async () => {
+  await showLoading();
+  if (currentSeatId) {
     const el = document.getElementById(currentSeatId);
-    if (el) {
-      el.classList.remove("is-current");
-      el.classList.add("is-disabled");
-    }
-    currentSeatId = null;
+    el.classList.add("is-disabled");
   }
+  pickRandomSeat();
+});
 
-  function pickRandomAvailableSeat() {
-    const candidates = seatIds.filter(
-      id => seatState[id] === "available" && id !== currentSeatId
-    );
-    if (candidates.length === 0) return null;
-    return candidates[Math.floor(Math.random() * candidates.length)];
-  }
+btnReset.addEventListener("click", async () => {
+  await showLoading();
+  seats.forEach(s => s.classList.remove("is-disabled", "is-current"));
+  pickRandomSeat();
+});
 
-  function rollNextSeat({ rejectCurrent = false } = {}) {
-    btnMain.disabled = true;
-    btnReset.disabled = true;
-    showOverlay();
-
-    setTimeout(() => {
-      if (rejectCurrent) rejectCurrentSeat();
-
-      const nextId = pickRandomAvailableSeat();
-      if (!nextId) {
-        hideOverlay();
-        updateMessage("もう空いている席はありません。");
-        btnMain.textContent = "席なし";
-        return;
-      }
-
-      setCurrentSeat(nextId);
-      updateMessage("");
-
-      hideOverlay();
-      btnMain.disabled = false;
-      btnReset.disabled = false;
-      btnMain.textContent = "ココジャナイ";
-
-      if (navigator.vibrate) navigator.vibrate(40);
-    }, LOADING_DELAY_MS);
-  }
-
-  /* ▼ 新規追加：全席リセット → 再抽選 ▼ */
-  btnReset.addEventListener("click", () => {
-    btnMain.disabled = true;
-    btnReset.disabled = true;
-    showOverlay();
-
-    setTimeout(() => {
-      // 状態リセット
-      seatIds.forEach(id => {
-        seatState[id] = "available";
-        const el = document.getElementById(id);
-        el.classList.remove("is-current", "is-disabled");
-      });
-
-      currentSeatId = null;
-
-      // 再抽選
-      rollNextSeat({ rejectCurrent: false });
-
-      hideOverlay();
-      btnMain.disabled = false;
-      btnReset.disabled = false;
-    }, LOADING_DELAY_MS);
-  });
-  /* ▲ 追加ここまで ▲ */
-
-  window.addEventListener("load", () => {
-    rollNextSeat({ rejectCurrent: false });
-  });
+window.addEventListener("load", async () => {
+  await showLoading();
+  pickRandomSeat();
+});
 </script>
+
 </body>
 </html>
