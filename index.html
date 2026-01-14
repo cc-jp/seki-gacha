@@ -1,24 +1,29 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SEKIGACHA</title>
-
-  <!-- アプリアイコン -->
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
-  <link rel="manifest" href="manifest.json" />
-
   <style>
     :root {
-      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+        "Segoe UI", system-ui, sans-serif;
       color-scheme: light;
+      --bg: #ffffff;
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      background: #ffffff;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
+      align-items: center;
+      background: var(--bg);
     }
 
     .app {
@@ -28,176 +33,542 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 24px;
     }
 
-    .logo img { width: 240px; }
+    .svg-wrapper {
+      width: 100%;
+      max-width: 320px;
+    }
 
-    .svg-wrapper { width: 320px; }
-    .svg-wrapper svg { width: 100%; height: auto; }
+    .svg-wrapper svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
 
-    /* 座席標準色 */
     g[id^="seat"] path,
     g[id^="seat"] rect {
       fill: #9fa0a0;
-      transition: fill 0.15s, opacity 0.15s;
+      transition: fill 0.15s ease-out, opacity 0.15s ease-out;
     }
 
-    /* ハイライト */
     g[id^="seat"].is-current path,
     g[id^="seat"].is-current rect {
       fill: #1fa4ea;
       opacity: 1;
     }
 
-    /* 除外席 */
     g[id^="seat"].is-disabled path,
     g[id^="seat"].is-disabled rect {
       fill: #e5e7eb;
-      opacity: 0.35;
+      opacity: 0.4;
     }
 
-    /* ボタン行 */
     .actions {
-      margin-top: 20px;
+      margin-top: 8px;
+      width: 100%;
       display: flex;
       justify-content: center;
+      gap: 12px;
       align-items: center;
-      gap: 14px;
     }
 
     .btn-main {
-      padding: 12px 20px;
+      width: 60%;
+      max-width: 260px;
       border: none;
-      border-radius: 12px;
-      font-size: 18px;
+      border-radius: 999px;
+      padding: 12px 16px;
       background: #1fa4ea;
-      color: #fff;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-align: center;
       cursor: pointer;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.08s ease-out, box-shadow 0.1s ease-out,
+        opacity 0.15s ease-out, background 0.15s ease-out;
     }
 
-    /* 丸ボタン */
-    .btn-retry {
+    .btn-main:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    }
+
+    .btn-main:disabled {
+      opacity: 0.5;
+      box-shadow: none;
+      cursor: default;
+      background: #9ca3af;
+    }
+
+    /* ▼ 追加：リセット丸ボタン */
+    .btn-reset {
       width: 44px;
       height: 44px;
       border-radius: 50%;
+      background: #e5e7eb;
       border: none;
-      background: #e2e8f0;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       cursor: pointer;
+      transition: background 0.2s ease-out;
     }
 
-    .icon-reload {
+    .btn-reset:hover {
+      background: #d1d5db;
+    }
+
+    .btn-reset:active {
+      background: #c7cacc;
+    }
+
+    .btn-reset svg {
       width: 22px;
       height: 22px;
+      stroke: #444;
     }
 
-    /* ローディング */
+    .message {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+      min-height: 1.4em;
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(255,255,255,0.8);
-      display: none;
-      justify-content: center;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      z-index: 20;
+      justify-content: center;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+      transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .spinner {
       width: 40px;
       height: 40px;
+      border-radius: 999px;
       border: 4px solid #d4d4d4;
       border-top-color: #1fa4ea;
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 8px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
 
 <body>
-
-<div id="loadingOverlay" class="overlay">
-  <div class="spinner"></div>
-</div>
-
-<main class="app">
-
-  <div class="logo">
-    <img src="title.svg" alt="SEKIGACHA">
+  <div id="loadingOverlay" class="overlay">
+    <div class="spinner"></div>
   </div>
 
-  <div class="svg-wrapper">
-    <!-- ▼▼▼ あなたの seat01〜seat30 の SVG をここに丸ごと貼る ▼▼▼ -->
-  </div>
+  <main class="app">
 
-  <section class="actions">
-    <button id="btnMain" class="btn-main">ココジャナイ</button>
+    <div class="logo">
+      <img src="title.svg" alt="席ガチャロゴ">
+    </div>
 
-    <button id="btnReset" class="btn-retry" aria-label="全席リセット">
-      <svg viewBox="0 0 24 24" class="icon-reload">
-        <path
-          d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6a6 6 0 1 1-6-6"
-          fill="none"
-          stroke="#475569"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
-    </button>
-  </section>
+    <!-- ▼ SVGはあなたのオリジナルそのまま（省略） -->
+    <div class="svg-container">
+      <div class="svg-wrapper">
+        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+          viewBox="0 0 196.484 238.222" style="enable-background:new 0 0 196.484 238.222;" xml:space="preserve">
+          <g id="seat30">
+            <path d="M175.53,222.353l-3.028-2.612l1.306-1.515c1.338-1.55,2.074-3.524,2.074-5.56
+            s-0.736-4.01-2.074-5.562l-1.306-1.514l3.028-2.612l1.307,1.515c1.964,2.276,3.045,5.179,3.045,8.173s-1.081,5.896-3.045,8.173
+            L175.53,222.353z" />
+            <rect x="148.669" y="207.571" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 374.3628 50.9695)"
+              width="26.055" height="10.189" />
+          </g>
 
-</main>
+          <g id="seat29">
+            <path d="M175.53,193.464l-3.028-2.612l1.306-1.515c1.338-1.55,2.074-3.524,2.074-5.56
+            c0-2.036-0.736-4.011-2.074-5.561l-1.306-1.515l3.028-2.612l1.307,1.514c1.964,2.276,3.045,5.179,3.045,8.174
+            c0,2.994-1.081,5.896-3.045,8.173L175.53,193.464z" />
+            <rect x="148.669" y="178.683" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 345.4741 22.0808)"
+              width="26.055" height="10.189" />
+          </g>
 
-<!-- ▼ JS は body の最後に移動（重要！） ▼ -->
-<script>
-const LOADING_DELAY_MS = 700;
-const overlayEl = document.getElementById("loadingOverlay");
-const btnMain = document.getElementById("btnMain");
-const btnReset = document.getElementById("btnReset");
+          <g id="seat28">
+            <path d="M175.53,164.575l-3.028-2.612l1.306-1.515c1.338-1.55,2.074-3.524,2.074-5.561
+            c0-2.035-0.736-4.01-2.074-5.56l-1.306-1.515l3.028-2.612l1.307,1.514c1.964,2.276,3.045,5.179,3.045,8.173
+            c0,2.995-1.081,5.897-3.045,8.174L175.53,164.575z" />
+            <rect x="148.669" y="149.794" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 316.585 -6.8083)"
+              width="26.056" height="10.189" />
+          </g>
 
-function showLoading() {
-  overlayEl.style.display = "flex";
-  return new Promise(r => setTimeout(() => {
-    overlayEl.style.display = "none";
-    r();
-  }, LOADING_DELAY_MS));
-}
+          <g id="seat27">
+            <path
+              d="M134.84,222.353l-1.307-1.514c-1.964-2.276-3.045-5.179-3.045-8.173s1.081-5.896,3.045-8.173
+            l1.307-1.515l3.028,2.612l-1.306,1.514c-1.338,1.552-2.074,3.526-2.074,5.562s0.736,4.01,2.074,5.56l1.306,1.515L134.84,222.353z" />
+            <rect x="135.646" y="207.571" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 361.3394 63.9929)"
+              width="26.055" height="10.189" />
+          </g>
 
-let currentSeatId = null;
-const seats = [...document.querySelectorAll("g[id^='seat']")];
+          <g id="seat26">
+            <path d="M134.84,193.464l-1.307-1.514c-1.964-2.276-3.045-5.179-3.045-8.173
+            c0-2.995,1.081-5.897,3.045-8.174l1.307-1.514l3.028,2.612l-1.306,1.515c-1.338,1.55-2.074,3.524-2.074,5.561
+            c0,2.035,0.736,4.01,2.074,5.56l1.306,1.515L134.84,193.464z" />
+            <rect x="135.646" y="178.683" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 332.4507 35.1043)"
+              width="26.055" height="10.189" />
+          </g>
 
-function pickRandomSeat() {
-  const remaining = seats.filter(s => !s.classList.contains("is-disabled"));
-  if (remaining.length === 0) return null;
-  seats.forEach(s => s.classList.remove("is-current"));
-  const seat = remaining[Math.floor(Math.random() * remaining.length)];
-  seat.classList.add("is-current");
-  currentSeatId = seat.id;
-}
+          <g id="seat25">
+            <path d="M134.84,164.575l-1.307-1.514c-1.964-2.276-3.045-5.179-3.045-8.174
+            c0-2.994,1.081-5.896,3.045-8.173l1.307-1.514l3.028,2.612l-1.306,1.515c-1.338,1.55-2.074,3.524-2.074,5.56
+            c0,2.036,0.736,4.011,2.074,5.561l1.306,1.515L134.84,164.575z" />
+            <rect x="135.645" y="149.794" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 303.5615 6.2151)"
+              width="26.056" height="10.189" />
+          </g>
 
-btnMain.addEventListener("click", async () => {
-  await showLoading();
-  if (currentSeatId) {
-    const el = document.getElementById(currentSeatId);
-    el.classList.add("is-disabled");
-  }
-  pickRandomSeat();
-});
+          <g id="seat24">
+            <path d="M105.53,222.353l-3.028-2.612l1.306-1.515c1.338-1.55,2.074-3.524,2.074-5.56
+            s-0.736-4.01-2.074-5.562l-1.306-1.514l3.028-2.612l1.307,1.515c1.964,2.276,3.045,5.179,3.045,8.173s-1.081,5.896-3.045,8.173
+            L105.53,222.353z" />
+            <rect x="78.67" y="207.572" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 304.363 120.9693)"
+              width="26.055" height="10.189" />
+          </g>
 
-btnReset.addEventListener("click", async () => {
-  await showLoading();
-  seats.forEach(s => s.classList.remove("is-disabled", "is-current"));
-  pickRandomSeat();
-});
+          <g id="seat23">
+            <path d="M105.53,193.464l-3.028-2.612l1.306-1.515c1.338-1.55,2.074-3.524,2.074-5.56
+            c0-2.036-0.736-4.011-2.074-5.561l-1.306-1.515l3.028-2.612l1.307,1.514c1.964,2.276,3.045,5.179,3.045,8.174
+            c0,2.994-1.081,5.896-3.045,8.173L105.53,193.464z" />
+            <rect x="78.67" y="178.683" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 275.4744 92.0806)"
+              width="26.055" height="10.189" />
+          </g>
 
-window.addEventListener("load", async () => {
-  await showLoading();
-  pickRandomSeat();
-});
-</script>
+          <g id="seat22">
+            <path d="M105.53,164.575l-3.028-2.612l1.306-1.515c1.338-1.55,2.074-3.524,2.074-5.561
+            c0-2.035-0.736-4.01-2.074-5.56l-1.306-1.515l3.028-2.612l1.307,1.514c1.964,2.276,3.045,5.179,3.045,8.173
+            c0,2.995-1.081,5.897-3.045,8.174L105.53,164.575z" />
+            <rect x="78.669" y="149.794" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 246.5852 63.1914)"
+              width="26.056" height="10.189" />
+          </g>
 
+          <g id="seat21">
+            <path
+              d="M64.841,222.353l-1.307-1.514c-1.963-2.275-3.045-5.179-3.045-8.173s1.081-5.896,3.044-8.173
+            l1.306-1.515l3.029,2.612l-1.306,1.514c-1.337,1.551-2.074,3.526-2.074,5.562s0.736,4.01,2.073,5.56l1.307,1.515L64.841,222.353z" />
+            <rect x="65.646" y="207.572" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 291.3391 133.9932)"
+              width="26.055" height="10.189" />
+          </g>
+
+          <g id="seat20">
+            <path d="M64.841,193.464l-1.307-1.514c-1.963-2.275-3.045-5.179-3.045-8.173
+            c0-2.995,1.082-5.898,3.045-8.174l1.307-1.514l3.028,2.612l-1.307,1.515c-1.337,1.55-2.073,3.524-2.073,5.561
+            c0,2.035,0.736,4.01,2.073,5.56l1.307,1.515L64.841,193.464z" />
+            <rect x="65.646" y="178.683" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 262.4504 105.1045)"
+              width="26.055" height="10.189" />
+          </g>
+
+          <g id="seat19">
+            <path d="M64.841,164.575l-1.307-1.514c-1.963-2.275-3.045-5.179-3.045-8.174
+            c0-2.994,1.082-5.897,3.045-8.173l1.307-1.514l3.028,2.612l-1.307,1.515c-1.337,1.55-2.073,3.524-2.073,5.56
+            c0,2.036,0.736,4.011,2.073,5.561l1.307,1.515L64.841,164.575z" />
+            <rect x="65.645" y="149.794" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 233.5613 76.2153)"
+              width="26.056" height="10.189" />
+          </g>
+
+          <g id="seat18">
+            <path d="M35.529,222.353l-3.028-2.612l1.307-1.515c1.337-1.55,2.073-3.524,2.073-5.56
+            s-0.736-4.011-2.074-5.562l-1.306-1.514l3.029-2.612l1.306,1.515c1.963,2.276,3.044,5.179,3.044,8.173s-1.082,5.897-3.045,8.173
+            L35.529,222.353z" />
+            <rect x="8.67" y="207.572" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 234.363 190.9693)"
+              width="26.055" height="10.189" />
+          </g>
+
+          <g id="seat17">
+            <path d="M35.529,193.464l-3.028-2.612l1.307-1.515c1.337-1.55,2.073-3.524,2.073-5.56
+            c0-2.036-0.736-4.011-2.073-5.561l-1.307-1.515l3.028-2.612l1.307,1.514c1.963,2.275,3.045,5.179,3.045,8.174
+            c0,2.994-1.082,5.897-3.045,8.173L35.529,193.464z" />
+            <rect x="8.67" y="178.683" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 205.4744 162.0806)"
+              width="26.055" height="10.189" />
+          </g>
+
+          <g id="seat16">
+            <path d="M35.529,164.575l-3.028-2.612l1.307-1.515c1.337-1.55,2.073-3.524,2.073-5.561
+            c0-2.035-0.736-4.01-2.073-5.56l-1.307-1.515l3.028-2.612l1.307,1.514c1.963,2.275,3.045,5.179,3.045,8.173
+            c0,2.995-1.082,5.898-3.045,8.174L35.529,164.575z" />
+            <rect x="8.669" y="149.794" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 176.5852 133.1914)"
+              width="26.056" height="10.189" />
+          </g>
+
+          <g id="seat15">
+            <path d="M175.53,96.534l-3.028-2.612l1.306-1.514c1.338-1.552,2.074-3.526,2.074-5.562
+            s-0.736-4.01-2.074-5.561l-1.306-1.514l3.028-2.613l1.307,1.515c1.964,2.276,3.045,5.179,3.045,8.173s-1.081,5.896-3.045,8.173
+            L175.53,96.534z" />
+            <rect x="148.67" y="81.752" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 248.5437 -74.8496)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat14">
+            <path d="M175.53,67.646l-3.028-2.613l1.306-1.514c1.338-1.551,2.074-3.525,2.074-5.561
+            s-0.736-4.01-2.074-5.561l-1.306-1.514l3.028-2.613l1.307,1.515c1.964,2.276,3.045,5.179,3.045,8.173s-1.081,5.896-3.045,8.173
+            L175.53,67.646z" />
+            <rect x="148.67" y="52.863" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 219.6548 -103.7385)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat13">
+            <path d="M175.53,38.757l-3.028-2.613l1.306-1.514c1.338-1.551,2.074-3.525,2.074-5.561
+            c0-2.036-0.736-4.01-2.074-5.56l-1.306-1.514l3.028-2.613l1.307,1.514c1.964,2.276,3.045,5.179,3.045,8.173
+            c0,2.994-1.081,5.896-3.045,8.173L175.53,38.757z" />
+            <rect x="148.67" y="23.974" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 190.7659 -132.6274)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat12">
+            <path
+              d="M134.84,96.534l-1.307-1.515c-1.964-2.276-3.045-5.179-3.045-8.173s1.081-5.896,3.045-8.173
+            l1.307-1.515l3.028,2.613l-1.306,1.514c-1.338,1.551-2.074,3.525-2.074,5.561s0.736,4.01,2.074,5.562l1.306,1.514L134.84,96.534z" />
+            <rect x="135.646" y="81.752" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 235.5203 -61.8262)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat11">
+            <path
+              d="M134.84,67.646l-1.307-1.515c-1.964-2.276-3.045-5.179-3.045-8.173s1.081-5.896,3.045-8.173
+            l1.307-1.515l3.028,2.613l-1.306,1.514c-1.338,1.551-2.074,3.525-2.074,5.561s0.736,4.01,2.074,5.561l1.306,1.514L134.84,67.646z" />
+            <rect x="135.646" y="52.863" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 206.6313 -90.7151)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat10">
+            <path d="M134.84,38.757l-1.307-1.515c-1.964-2.276-3.045-5.179-3.045-8.173
+            c0-2.995,1.081-5.897,3.045-8.173l1.307-1.514l3.028,2.613l-1.306,1.514c-1.338,1.55-2.074,3.524-2.074,5.56
+            c0,2.035,0.736,4.01,2.074,5.561l1.306,1.514L134.84,38.757z" />
+            <rect x="135.646" y="23.974" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 177.7424 -119.604)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat09">
+            <path d="M105.53,96.534l-3.028-2.612l1.306-1.514c1.338-1.552,2.074-3.526,2.074-5.562
+            s-0.736-4.01-2.074-5.561l-1.306-1.514l3.028-2.613l1.307,1.515c1.964,2.276,3.045,5.179,3.045,8.173s-1.081,5.896-3.045,8.173
+            L105.53,96.534z" />
+            <rect x="78.67" y="81.753" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 178.5439 -4.8498)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat08">
+            <path d="M105.53,67.646l-3.028-2.613l1.306-1.514c1.338-1.551,2.074-3.525,2.074-5.561
+            s-0.736-4.01-2.074-5.561l-1.306-1.514l3.028-2.613l1.307,1.515c1.964,2.276,3.045,5.179,3.045,8.173s-1.081,5.896-3.045,8.173
+            L105.53,67.646z" />
+            <rect x="78.67" y="52.864" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 149.655 -33.7388)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat07">
+            <path d="M105.53,38.757l-3.028-2.613l1.306-1.514c1.338-1.551,2.074-3.525,2.074-5.561
+            c0-2.036-0.736-4.01-2.074-5.56l-1.306-1.514l3.028-2.613l1.307,1.514c1.964,2.276,3.045,5.179,3.045,8.173
+            c0,2.994-1.081,5.896-3.045,8.173L105.53,38.757z" />
+            <rect x="78.67" y="23.975" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 120.7661 -62.6277)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat06">
+            <path d="M64.84,96.534l-1.306-1.515c-1.963-2.276-3.044-5.179-3.044-8.173s1.081-5.897,3.044-8.173
+            l1.307-1.515l3.029,2.613l-1.306,1.514c-1.337,1.55-2.074,3.525-2.074,5.561c0,2.035,0.736,4.011,2.074,5.562l1.306,1.514
+            L64.84,96.534z" />
+            <rect x="65.646" y="81.753" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 165.52 8.1741)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat05">
+            <path
+              d="M64.84,67.646l-1.307-1.515c-1.963-2.276-3.044-5.179-3.044-8.173s1.081-5.897,3.044-8.173
+            l1.307-1.515l3.029,2.613l-1.306,1.514c-1.337,1.55-2.074,3.525-2.074,5.561s0.736,4.01,2.074,5.561l1.306,1.514L64.84,67.646z" />
+            <rect x="65.646" y="52.864" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 136.6311 -20.7148)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat04">
+            <path d="M64.84,38.757l-1.307-1.515c-1.963-2.276-3.044-5.179-3.044-8.173c0-2.995,1.082-5.897,3.045-8.173
+            l1.307-1.514l3.028,2.613l-1.307,1.514c-1.337,1.549-2.073,3.524-2.073,5.56c0,2.036,0.736,4.01,2.074,5.561l1.306,1.514
+            L64.84,38.757z" />
+            <rect x="65.646" y="23.975" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 107.7422 -49.6037)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat03">
+            <path d="M35.53,96.534l-3.029-2.612l1.306-1.514c1.337-1.551,2.074-3.526,2.074-5.562
+            c0-2.036-0.736-4.01-2.074-5.561l-1.306-1.514l3.029-2.613l1.307,1.515c1.963,2.276,3.044,5.179,3.044,8.173
+            s-1.081,5.896-3.044,8.173L35.53,96.534z" />
+            <rect x="8.67" y="81.753" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 108.5439 65.1502)"
+              width="26.054" height="10.189" />
+          </g>
+
+          <g id="seat02">
+            <path d="M35.53,67.646l-3.029-2.613l1.306-1.514c1.337-1.55,2.074-3.525,2.074-5.561
+            s-0.736-4.01-2.074-5.561l-1.306-1.514l3.029-2.613l1.307,1.515c1.963,2.276,3.044,5.179,3.044,8.173
+            s-1.081,5.897-3.044,8.173L35.53,67.646z" />
+            <rect x="8.67" y="52.864" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 79.655 36.2612)" width="26.054"
+              height="10.189" />
+          </g>
+
+          <g id="seat01">
+            <path d="M35.53,38.757l-3.029-2.613l1.306-1.514c1.337-1.55,2.074-3.525,2.074-5.561
+            c0-2.036-0.736-4.011-2.073-5.56l-1.307-1.514l3.028-2.613l1.307,1.514c1.963,2.276,3.045,5.178,3.045,8.173
+            c0,2.994-1.081,5.897-3.044,8.173L35.53,38.757z" />
+            <rect x="8.67" y="23.975" transform="matrix(-1.836970e-16 1 -1 -1.836970e-16 50.7661 7.3723)" width="26.054"
+              height="10.189" />
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ▼ ボタン部分：リセットボタン追加 -->
+    <section class="actions">
+      <button id="btnMain" class="btn-main">ココジャナイ</button>
+
+      <button id="btnReset" class="btn-reset" aria-label="リセット">
+        <!-- reload icon (inline SVG) -->
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v6h6" />
+          <path d="M21 12a9 9 0 0 0-15-6.7L3 8" />
+        </svg>
+      </button>
+    </section>
+
+    <div id="message" class="message"></div>
+  </main>
+
+  <script>
+    const LOADING_DELAY_MS = 1000;
+
+    const overlayEl = document.getElementById("loadingOverlay");
+    const btnMain = document.getElementById("btnMain");
+    const btnReset = document.getElementById("btnReset");
+    const messageEl = document.getElementById("message");
+
+    const seatGroups = Array.from(document.querySelectorAll("svg g[id^='seat']"));
+    const seatIds = seatGroups.map(g => g.id);
+
+    const seatState = {};
+    seatIds.forEach(id => seatState[id] = "available");
+
+    let currentSeatId = null;
+
+    function showOverlay() {
+      overlayEl.classList.remove("hidden");
+    }
+    function hideOverlay() {
+      overlayEl.classList.add("hidden");
+    }
+    function updateMessage(text) {
+      messageEl.textContent = text || "";
+    }
+
+    function setCurrentSeat(id) {
+      if (currentSeatId) {
+        const prev = document.getElementById(currentSeatId);
+        if (prev) prev.classList.remove("is-current");
+      }
+      currentSeatId = id;
+      const el = document.getElementById(id);
+      if (el) el.classList.add("is-current");
+    }
+
+    function rejectCurrentSeat() {
+      if (!currentSeatId) return;
+      seatState[currentSeatId] = "rejected";
+      const el = document.getElementById(currentSeatId);
+      if (el) {
+        el.classList.remove("is-current");
+        el.classList.add("is-disabled");
+      }
+      currentSeatId = null;
+    }
+
+    function pickRandomAvailableSeat() {
+      const candidates = seatIds.filter(
+        id => seatState[id] === "available" && id !== currentSeatId
+      );
+      if (candidates.length === 0) return null;
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+
+    function rollNextSeat(options = {}) {
+      const { rejectCurrent = false } = options;
+
+      btnMain.disabled = true;
+      showOverlay();
+
+      setTimeout(() => {
+        if (rejectCurrent) {
+          rejectCurrentSeat();
+        }
+
+        const nextId = pickRandomAvailableSeat();
+        if (!nextId) {
+          hideOverlay();
+          updateMessage("もう空いている席はありません。");
+          btnMain.disabled = true;
+          btnMain.textContent = "席なし";
+          return;
+        }
+
+        setCurrentSeat(nextId);
+        hideOverlay();
+        updateMessage("");
+        btnMain.disabled = false;
+        btnMain.textContent = "ココジャナイ";
+
+        if (navigator.vibrate) {
+          navigator.vibrate(40);
+        }
+      }, LOADING_DELAY_MS);
+    }
+
+    /* ▼ 追加：候補を完全リセット */
+    function resetSeats() {
+      // 状態初期化
+      seatIds.forEach(id => seatState[id] = "available");
+
+      // クラス初期化
+      seatIds.forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove("is-current", "is-disabled");
+      });
+
+      currentSeatId = null;
+      updateMessage("");
+
+      // 最初の1席を引き直す
+      rollNextSeat({ rejectCurrent: false });
+    }
+
+    btnMain.addEventListener("click", () => {
+      rollNextSeat({ rejectCurrent: true });
+    });
+
+    /* ▼ リセットボタンの動作 */
+    btnReset.addEventListener("click", resetSeats);
+
+    window.addEventListener("load", () => {
+      rollNextSeat({ rejectCurrent: false });
+    });
+  </script>
 </body>
+
 </html>
